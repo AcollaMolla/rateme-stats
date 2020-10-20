@@ -1,7 +1,14 @@
 from user import User
-import requests
+import requests, re
 
 def GetSex(post):
+	pattern = "^[a-zA-Z]\d{2}"
+	title = post['data']['title']
+	sex = re.search(pattern, title)
+	if sex is not None:
+		print(sex.group(0))
+	print(title)
+	print("------")
 	return "female"
 	
 def GetAge(post):
@@ -30,3 +37,4 @@ for post in posts:
 	user = User(id, GetSex(post), GetAge(post), GetRedditUserId(post), GetRedditPostId(post), CalculateStats(post))
 	users.append(user)
 	id = id + 1
+	exit
