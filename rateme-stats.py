@@ -29,16 +29,29 @@ def GetAge(post):
 		return 0
 	
 def GetRedditUserId(post):
-	return 123
+	redditUserId = post['author_fullname']
+	if redditUserId is None or redditUserId == "" or redditUserId == "null":
+		return None
+	return redditUserId
 	
 def GetRedditPostId(post):
-	return 456
+	redditPostId = post['id']
+	if redditPostId is None or redditPostId == "" or redditPostId == "null":
+		return None
+	return redditPostId
 	
-def CalculateStats(post):
-	stats = []
-	stats.append(5)
-	stats.append(1.2)
-	return stats
+def GetRating(comment):
+	return 6
+	
+def CalculateStats(redditPostId):
+	print("Fetching comment for " + redditPostId)
+	URL = "https://api.pushshift.io/reddit/comment/search/?link_id=" + redditPostId + "&limit=1000"
+	r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
+	comments = r.json()['data']
+	rates = []
+	for comment in comments:
+		rates.append(GetRating(comment['body']))
+	return sum(rates)/len(rates)
 	
 def CreateTimestamp():
 	#Fetch posts made at least 1 week ago, letting the post mature in votes and comments
@@ -48,7 +61,7 @@ def CreateTimestamp():
 	return today - oneWeekInSeconds
 	
 #Unfourtanly Pushshift API only allows retrieving max 100 posts since mid-2020
-URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=100"
+URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=5"
 users = []
 r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
 data = r.json()
@@ -59,10 +72,13 @@ for post in posts:
 	sex = GetSex(post)
 	age = GetAge(post)
 	redditPostId = GetRedditPostId(post)
-	if sex == "None" and age > 0:
+	if sex == "None" or age == 0 or redditPostId is None:
 		continue
 	else:
-		user = User(id, sex, age, GetRedditUserId(post), redditPostId, CalculateStats(post))
+		user = User(id, sex, age, GetRedditUserId(post), redditPostId, CalculateStats(redditPostId))
+		print("User avg rate: " + str(user.avgRate))
 		users.append(user)
 		id = id + 1
 print(len(users))
+print("Females: " + str(sum(u.sex == "Female" for u in users)))
+print("Males: " + str(sum(u.sex == "Male" for u in users)))
