@@ -2,7 +2,8 @@ from user import User
 import requests, re, time
 
 def GetAgeSex(post):
-	pattern = "[a-zA-Z]\d{2}|\d{2}[a-zA-Z]"
+	#pattern = "[a-zA-Z]\d{2}|\d{2}[a-zA-Z]|\b([fFwWmM])\b"
+	pattern = "[fFwWmM]\d{2}|\d{2}[fFwWmM]"
 	title = post['title']
 	ageAndSex = re.search(pattern, title)
 	if ageAndSex is not None:
@@ -13,8 +14,9 @@ def GetSex(post):
 	pattern = "[a-zA-Z]{1}"
 	ageAndSex = GetAgeSex(post)
 	sex = re.search(pattern, ageAndSex).group(0)
-	print(sex)
-	print(post['title'])
+	#print(sex)
+	#print(post['title'])
+	#print("----------")
 	if sex == "w" or sex == "W" or sex == "f" or sex == "F":
 		return "Female"
 	elif sex == "m" or sex == "M":
@@ -22,7 +24,13 @@ def GetSex(post):
 	return "None"
 	
 def GetAge(post):
-	return 20
+	pattern = "[0-9]*"
+	ageAndSex = GetAgeSex(post)
+	age = re.search(pattern, ageAndSex)
+	if age is not None:
+		return age.group(0)
+	else:
+		return 0
 	
 def GetRedditUserId(post):
 	return 123
@@ -43,8 +51,8 @@ def CreateTimestamp():
 	print(today - oneWeekInSeconds)
 	return today - oneWeekInSeconds
 	
-
-URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=5"
+#Unfourtanly Pushshift API only allows retrieving max 100 posts since mid-2020
+URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=100"
 users = []
 r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
 data = r.json()
@@ -52,7 +60,13 @@ posts = data['data']
 id = 0
 print("posts length: " + str(len(posts)))
 for post in posts:
-    user = User(id, GetSex(post), GetAge(post), GetRedditUserId(post), GetRedditPostId(post), CalculateStats(post))
-    users.append(user)
-    id = id + 1
-    exit
+	sex = GetSex(post)
+	age = GetAge(post)
+	redditPostId = GetRedditPostId(post)
+	if sex == "None":
+		continue
+	else:
+		user = User(id, sex, age, GetRedditUserId(post), redditPostId, CalculateStats(post))
+		users.append(user)
+		id = id + 1
+print(len(users))
