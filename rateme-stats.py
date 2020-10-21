@@ -2,7 +2,6 @@ from user import User
 import requests, re, time
 
 def GetAgeSex(post):
-	#pattern = "[a-zA-Z]\d{2}|\d{2}[a-zA-Z]|\b([fFwWmM])\b"
 	pattern = "[fFwWmM]\d{2}|\d{2}[fFwWmM]"
 	title = post['title']
 	ageAndSex = re.search(pattern, title)
@@ -14,9 +13,6 @@ def GetSex(post):
 	pattern = "[a-zA-Z]{1}"
 	ageAndSex = GetAgeSex(post)
 	sex = re.search(pattern, ageAndSex).group(0)
-	#print(sex)
-	#print(post['title'])
-	#print("----------")
 	if sex == "w" or sex == "W" or sex == "f" or sex == "F":
 		return "Female"
 	elif sex == "m" or sex == "M":
