@@ -63,7 +63,7 @@ for post in posts:
 	sex = GetSex(post)
 	age = GetAge(post)
 	redditPostId = GetRedditPostId(post)
-	if sex == "None":
+	if sex == "None" and age > 0:
 		continue
 	else:
 		user = User(id, sex, age, GetRedditUserId(post), redditPostId, CalculateStats(post))
