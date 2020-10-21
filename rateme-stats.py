@@ -1,4 +1,5 @@
 from user import User
+from stats import Stats
 import requests, re, time
 
 def GetAgeSex(post):
@@ -40,8 +41,29 @@ def GetRedditPostId(post):
 		return None
 	return redditPostId
 	
+def IsCommentFromMod(comment):
+	substring = "Hello /u/"
+	substring2 = "[moderators]"
+	if substring in comment or substring2 in comment:
+		return True
+	return False
+	
 def GetRating(comment):
-	return 6
+	if IsCommentFromMod(comment):
+		return None
+	pattern = "[\d*][.]?\d*"
+	rating = re.search(pattern, comment)
+	if rating is not None:
+		#print(comment)
+		try:
+			rate = float(rating.group(0))
+		except:
+			return None
+		if rate > 10:
+			return None
+		print("adding rate: " + str(rate))
+		return rate
+	return None
 	
 def CalculateStats(redditPostId):
 	print("Fetching comment for " + redditPostId)
@@ -50,8 +72,15 @@ def CalculateStats(redditPostId):
 	comments = r.json()['data']
 	rates = []
 	for comment in comments:
-		rates.append(GetRating(comment['body']))
-	return sum(rates)/len(rates)
+		rate = GetRating(comment['body'])
+		if rate is None:
+			continue
+		else:
+			rates.append(float(rate))
+	if len(rates) > 0:
+		stats = Stats(sum(rates)/len(rates), len(comments))
+		return stats
+	return Stats(0, len(comments))
 	
 def CreateTimestamp():
 	#Fetch posts made at least 1 week ago, letting the post mature in votes and comments
@@ -76,7 +105,8 @@ for post in posts:
 		continue
 	else:
 		user = User(id, sex, age, GetRedditUserId(post), redditPostId, CalculateStats(redditPostId))
-		print("User avg rate: " + str(user.avgRate))
+		print("User avg rate: " + str(user.stats.avg))
+		print("Number of comments: " + str(user.stats.commentCount))
 		users.append(user)
 		id = id + 1
 print(len(users))

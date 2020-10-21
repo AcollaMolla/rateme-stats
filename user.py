@@ -5,5 +5,4 @@ class User:
 		self.age = age
 		self.redditUserId = redditUserId
 		self.redditPostId = redditPostId
-		self.avgRate = stats[0]
-		self.stddevRate = stats[1] 
+		self.stats = stats
