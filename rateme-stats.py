@@ -130,4 +130,12 @@ print("Female avg rating: " + str(femaleRating))
 print("Male avg rating: " + str(maleRating))
 print("Female avg comment count: " + str(sum(f.stats.commentCount for f in females)/len(females)))
 print("Male avg comment count: " + str(sum(m.stats.commentCount for m in males)/len(males)))
-
+females.sort(key=lambda x:x.stats.commentCount, reverse=True)
+males.sort(key=lambda x:x.stats.commentCount, reverse=True)
+print("The most popular posts based on comment count:")
+print("Females:")
+for female in females:
+        print(str(female.stats.commentCount))
+print("Males")
+for male in males:
+        print(male.stats.commentCount)
