@@ -89,7 +89,7 @@ def CreateTimestamp():
 	return today - oneWeekInSeconds
 	
 #Unfourtanly Pushshift API only allows retrieving max 100 posts since mid-2020
-URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=50"
+URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=100"
 users = []
 r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
 data = r.json()
@@ -128,4 +128,6 @@ print("Females: " + str(len(females)))
 print("Males: " + str(len(males)))
 print("Female avg rating: " + str(femaleRating))
 print("Male avg rating: " + str(maleRating))
+print("Female avg comment count: " + str(sum(f.stats.commentCount for f in females)/len(females)))
+print("Male avg comment count: " + str(sum(m.stats.commentCount for m in males)/len(males)))
 
