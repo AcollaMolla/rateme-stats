@@ -61,7 +61,6 @@ def GetRating(comment):
 			return None
 		if rate > 10:
 			return None
-		print("adding rate: " + str(rate))
 		return rate
 	return None
 	
@@ -80,7 +79,7 @@ def CalculateStats(redditPostId):
 	if len(rates) > 0:
 		stats = Stats(sum(rates)/len(rates), len(comments))
 		return stats
-	return Stats(0, len(comments))
+	return None
 	
 def CreateTimestamp():
 	#Fetch posts made at least 1 week ago, letting the post mature in votes and comments
@@ -90,7 +89,7 @@ def CreateTimestamp():
 	return today - oneWeekInSeconds
 	
 #Unfourtanly Pushshift API only allows retrieving max 100 posts since mid-2020
-URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=5"
+URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=50"
 users = []
 r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
 data = r.json()
@@ -104,11 +103,29 @@ for post in posts:
 	if sex == "None" or age == 0 or redditPostId is None:
 		continue
 	else:
-		user = User(id, sex, age, GetRedditUserId(post), redditPostId, CalculateStats(redditPostId))
-		print("User avg rate: " + str(user.stats.avg))
-		print("Number of comments: " + str(user.stats.commentCount))
-		users.append(user)
-		id = id + 1
+                stats = CalculateStats(redditPostId)
+                if stats is not None:
+                        user = User(id, sex, age, GetRedditUserId(post), redditPostId, stats)
+                        users.append(user)
+                        id = id + 1
+                else:
+                        continue
 print(len(users))
-print("Females: " + str(sum(u.sex == "Female" for u in users)))
-print("Males: " + str(sum(u.sex == "Male" for u in users)))
+females = []
+males = []
+femaleRating = 0
+maleRating = 0
+for user in users:
+        if user.sex == "Female":
+                females.append(user)
+        else:
+                males.append(user)
+if len(females) > 0:
+        femaleRating = sum(f.stats.avg for f in females)/len(females)
+if len(males) > 0:
+        maleRating = sum(m.stats.avg for m in males)/len(males)
+print("Females: " + str(len(females)))
+print("Males: " + str(len(males)))
+print("Female avg rating: " + str(femaleRating))
+print("Male avg rating: " + str(maleRating))
+
