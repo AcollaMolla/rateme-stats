@@ -21,7 +21,7 @@ def GetSex(post):
 	return "None"
 	
 def GetAge(post):
-	pattern = "[0-9]*"
+	pattern = "\d+"
 	ageAndSex = GetAgeSex(post)
 	age = re.search(pattern, ageAndSex)
 	if age is not None:
@@ -103,29 +103,29 @@ def CreateTimestamp(time):
 	
 #Unfourtanly Pushshift API only allows retrieving max 100 posts since mid-2020
 posts = []
-URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(int(time.time()) - 604800) + "&size=100"
+URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(int(time.time()) - 604800) + "&size=10"
 users = []
 
 for i in range(0,2):
 	r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
 	data = r.json()
 	posts.extend(data['data'])
-	URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(posts[len(posts)-1]['created_utc']) + "&size=100"
+	URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(posts[len(posts)-1]['created_utc']) + "&size=10"
 	
 id = 0
 print("posts length: " + str(len(posts)))
 for post in posts:
 	sex = GetSex(post)
-	age = GetAge(post)
+	age = int(GetAge(post))
 	redditPostId = GetRedditPostId(post)
 	if sex == "None" or age == 0 or redditPostId is None:
 		continue
 	else:
                 stats = CalculateStats(redditPostId)
                 if stats is not None:
-                        user = User(id, sex, age, GetRedditUserId(post), redditPostId, stats)
-                        users.append(user)
-                        id = id + 1
+						user = User(id, sex, age, GetRedditUserId(post), redditPostId, stats)
+						users.append(user)
+						id = id + 1
                 else:
                         continue
 print(len(users))
@@ -156,3 +156,7 @@ print("Female avg rating: " + str(femaleRating))
 print("Male avg rating: " + str(maleRating))
 print("Female avg comment count: " + str(sum(f.stats.commentCount for f in females)/len(females)))
 print("Male avg comment count: " + str(sum(m.stats.commentCount for m in males)/len(males)))
+females.extend(unvalidFemales)
+males.extend(unvalidMales)
+print("Average female age: " + str(sum(f.age for f in females)/len(females)))
+print("Average male age: " + str(sum(m.age for m in males)/len(males)))
