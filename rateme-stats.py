@@ -30,13 +30,21 @@ def GetAge(post):
 		return 0
 	
 def GetRedditUserId(post):
-	redditUserId = post['author_fullname']
+	try:
+		redditUserId = post['author_fullname']
+	except:
+		print(post)
+		return "unknown"
 	if redditUserId is None or redditUserId == "" or redditUserId == "null":
 		return None
 	return redditUserId
 	
 def GetRedditPostId(post):
-	redditPostId = post['id']
+	try:
+		redditPostId = post['id']
+	except Exception as e:
+		print(e)
+		return "unknown"
 	if redditPostId is None or redditPostId == "" or redditPostId == "null":
 		return None
 	return redditPostId
@@ -51,15 +59,17 @@ def IsCommentFromMod(comment):
 def GetRating(comment):
 	if IsCommentFromMod(comment):
 		return None
-	pattern = "[\d*][.]?\d*"
+	pattern = "[\d][.]?\d*"
 	rating = re.search(pattern, comment)
 	if rating is not None:
 		#print(comment)
 		try:
 			rate = float(rating.group(0))
-		except:
+		except Exception as e:
+			print(comment)
+			print(e)
 			return None
-		if rate > 10:
+		if rate > 10 or rate < 0:
 			return None
 		return rate
 	return None
@@ -77,11 +87,14 @@ def CalculateStats(redditPostId):
 		else:
 			rates.append(float(rate))
 	if len(rates) > 0:
-		stats = Stats(sum(rates)/len(rates), len(comments))
+		stats = Stats(sum(rates)/len(rates), len(comments), True)
+		return stats
+	else:
+		stats = Stats(-1, len(comments), False)
 		return stats
 	return None
 	
-def CreateTimestamp():
+def CreateTimestamp(time):
 	#Fetch posts made at least 1 week ago, letting the post mature in votes and comments
 	oneWeekInSeconds = 604800
 	today = int(time.time())
@@ -90,11 +103,15 @@ def CreateTimestamp():
 	
 #Unfourtanly Pushshift API only allows retrieving max 100 posts since mid-2020
 posts = []
-URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(CreateTimestamp()) + "&size=5"
+URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(int(time.time()) - 604800) + "&size=100"
 users = []
-r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
-data = r.json()
-posts.extend(data['data'])
+
+for i in range(0,2):
+	r = requests.get(URL, headers = {'User-agent': 'rateme-stats 1.0'})
+	data = r.json()
+	posts.extend(data['data'])
+	URL = "https://api.pushshift.io/reddit/search/submission/?subreddit=rateme&sort=desc&sort_type=created_utc&before=" + str(posts[len(posts)-1]['created_utc']) + "&size=100"
+	
 id = 0
 print("posts length: " + str(len(posts)))
 for post in posts:
@@ -114,29 +131,28 @@ for post in posts:
 print(len(users))
 females = []
 males = []
+unvalidFemales = []
+unvalidMales = []
 femaleRating = 0
 maleRating = 0
 for user in users:
-        if user.sex == "Female":
+        if user.sex == "Female" and user.stats.valid:
                 females.append(user)
-        else:
+        elif user.sex == "Female" and not user.stats.valid:
+				unvalidFemales.append(user)
+        elif user.sex == "Male" and user.stats.valid:
                 males.append(user)
+        elif user.sex == "Male" and not user.stats.valid:
+				unvalidMales.append(user)
 if len(females) > 0:
         femaleRating = sum(f.stats.avg for f in females)/len(females)
 if len(males) > 0:
         maleRating = sum(m.stats.avg for m in males)/len(males)
 print("Females: " + str(len(females)))
 print("Males: " + str(len(males)))
+print("Female posters with no comments: " + str(len(unvalidFemales)))
+print("Male posters with no comments: " + str(len(unvalidMales)))
 print("Female avg rating: " + str(femaleRating))
 print("Male avg rating: " + str(maleRating))
 print("Female avg comment count: " + str(sum(f.stats.commentCount for f in females)/len(females)))
 print("Male avg comment count: " + str(sum(m.stats.commentCount for m in males)/len(males)))
-females.sort(key=lambda x:x.stats.commentCount, reverse=True)
-males.sort(key=lambda x:x.stats.commentCount, reverse=True)
-print("The most popular posts based on comment count:")
-print("Females:")
-for female in females:
-        print(str(female.stats.commentCount))
-print("Males")
-for male in males:
-        print(male.stats.commentCount)
